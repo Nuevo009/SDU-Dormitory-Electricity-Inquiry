@@ -1,5 +1,4 @@
 import time
-import logging
 import requests
 from config import *
 class Telegram:
@@ -10,7 +9,7 @@ class Telegram:
 
     def send_message(self, text):
         data = (('chat_id', self.user_id), ('text', text))
-        response = requests.post(f"https://{self.host}/bot{self.token}/sendMessage",
+        response = requests.post(url=f"https://{self.host}/bot{self.token}/sendMessage",
                                  data=data)
         if response.status_code != 200:
             print('Telegram Bot 推送失败')
@@ -25,16 +24,13 @@ class Qmsg:
     def send_message(self, text):
         data = (('qq', self.user_id),
                 ('msg', text))
-        response = requests.post(f"https://{self.host}/send/{self.api_key}", data=data)
+        response = requests.post(url=f"https://{self.host}/send/{self.api_key}", data=data)
         if response.status_code != 200:
-            print('Qmsg 推送失败')
-        else:
-            print('Qmsg 推送成功')
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s %(levelname)s %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S')
-log = logger = logging
+            print('Qmsg 推送失败，原因可能为网络问题，err_code:', response.status_code)
+        elif response.json()['code'] != 0:
+            print(f'Qmsg 推送失败，具体原因为：{response.json()["reason"]}')
+        else: print('Qmsg 推送成功')
+
 def request(*args, **kwargs):
     is_retry = True
     count = 0
@@ -48,13 +44,15 @@ def request(*args, **kwargs):
         except Exception as e:
             if count == max_retries:
                 raise e
-            log.error(f'Request failed: {e}')
-            count += 1
-            log.info(
-                f'Trying to reconnect in {sleep_seconds} seconds ({count}/{max_retries})...')
             time.sleep(sleep_seconds)
         else:
             return response
 def GetMsg(url, headers, data):
-    status =  request('POST', url, headers=headers, data=data).json()
-    return f"⚡剩余电量⚡ \n\n{status['message']['plusElec']} 度"
+    response = request('POST', url, headers=headers, data=data).json()
+    status = response['message']['status']
+    elec = response['message']['plusElec']
+    if status == '获取数据异常':
+        return status
+    elif float(elec) < 10.0:
+        return f'您的电量不足 10 度，当前电量为 {elec}，请及时充电！'
+    else: return f'您的电量为 {elec} 度，请放心使用！'
