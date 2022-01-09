@@ -10,7 +10,7 @@ class Telegram:
 
     def send_message(self, text):
         data = (('chat_id', self.user_id), ('text', text))
-        response = requests.post(f"https://{TG_API_HOST}/bot{self.token}/sendMessage",
+        response = requests.post(f"https://{self.host}/bot{self.token}/sendMessage",
                                  data=data)
         if response.status_code != 200:
             print('Telegram Bot 推送失败')
