@@ -26,8 +26,8 @@ func main() {
 		}
 	}
 	if count == maxRetries {
-		conf.Telegram.SendMsg("异常")
-		log.Fatal(err)
+		conf.Telegram.SendMsg("异常达到最大重试次数")
+		log.Fatal("获取数据异常")
 	} else {
 		err = conf.Telegram.SendMsg(msg)
 		if err != nil {
